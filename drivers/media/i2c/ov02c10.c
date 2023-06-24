@@ -565,6 +565,27 @@ static void ov02c10_update_pad_format(const struct ov02c10_mode *mode,
 	fmt->field = V4L2_FIELD_NONE;
 }
 
+static int ov02c10_identify_module(struct ov02c10 *ov02c10)
+{
+	struct i2c_client *client = v4l2_get_subdevdata(&ov02c10->sd);
+	u64 chip_id;
+	int ret;
+
+	ret = cci_read(ov02c10->regmap, OV02C10_REG_CHIP_ID, &chip_id, NULL);
+	if (ret)
+		return ret;
+
+dev_info(&client->dev, "%s read chip id 0x%08lx want 0x%08lx\n", __func__, chip_id, OV02C10_CHIP_ID);
+
+	if (chip_id != OV02C10_CHIP_ID) {
+		dev_err(&client->dev, "chip id mismatch: %x!=%llx",
+			OV02C10_CHIP_ID, chip_id);
+		return -ENXIO;
+	}
+
+	return 0;
+}
+
 static int ov02c10_enable_streams(struct v4l2_subdev *sd,
 				  struct v4l2_subdev_state *state,
 				  u32 pad, u64 streams_mask)
@@ -785,27 +806,6 @@ static const struct media_entity_operations ov02c10_subdev_entity_ops = {
 static const struct v4l2_subdev_internal_ops ov02c10_internal_ops = {
 	.init_state = ov02c10_init_state,
 };
-
-static int ov02c10_identify_module(struct ov02c10 *ov02c10)
-{
-	struct i2c_client *client = v4l2_get_subdevdata(&ov02c10->sd);
-	u64 chip_id;
-	int ret;
-
-	ret = cci_read(ov02c10->regmap, OV02C10_REG_CHIP_ID, &chip_id, NULL);
-	if (ret)
-		return ret;
-
-dev_info(&client->dev, "%s read chip id 0x%08lx want 0x%08lx\n", __func__, chip_id, OV02C10_CHIP_ID);
-
-	if (chip_id != OV02C10_CHIP_ID) {
-		dev_err(&client->dev, "chip id mismatch: %x!=%llx",
-			OV02C10_CHIP_ID, chip_id);
-		return -ENXIO;
-	}
-
-	return 0;
-}
 
 static int ov02c10_check_hwcfg(struct device *dev, struct ov02c10 *ov02c10)
 {
