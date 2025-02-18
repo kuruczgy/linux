@@ -415,9 +415,17 @@ static int vcodec_control_v4(struct venus_core *core, u32 coreid, bool enable)
 	u32 val;
 	int ret;
 
-	if (IS_V6(core))
-		return dev_pm_genpd_set_hwmode(core->pmdomains->pd_devs[coreid], !enable);
-	else if (coreid == VIDC_CORE_ID_1) {
+	ret = dev_pm_genpd_set_hwmode(core->pmdomains->pd_devs[coreid], !enable);
+	if (ret == -EOPNOTSUPP) {
+		core->hwmode_dev = false;
+		goto legacy;
+	}
+
+	core->hwmode_dev = true;
+	return ret;
+
+legacy:
+	if (coreid == VIDC_CORE_ID_1) {
 		ctrl = core->wrapper_base + WRAPPER_VCODEC0_MMCC_POWER_CONTROL;
 		stat = core->wrapper_base + WRAPPER_VCODEC0_MMCC_POWER_STATUS;
 	} else {
@@ -453,7 +461,7 @@ static int poweroff_coreid(struct venus_core *core, unsigned int coreid_mask)
 
 		vcodec_clks_disable(core, core->vcodec0_clks);
 
-		if (!IS_V6(core)) {
+		if (!core->hwmode_dev) {
 			ret = vcodec_control_v4(core, VIDC_CORE_ID_1, false);
 			if (ret)
 				return ret;
@@ -471,7 +479,7 @@ static int poweroff_coreid(struct venus_core *core, unsigned int coreid_mask)
 
 		vcodec_clks_disable(core, core->vcodec1_clks);
 
-		if (!IS_V6(core)) {
+		if (!core->hwmode_dev) {
 			ret = vcodec_control_v4(core, VIDC_CORE_ID_2, false);
 			if (ret)
 				return ret;
@@ -494,11 +502,9 @@ static int poweron_coreid(struct venus_core *core, unsigned int coreid_mask)
 		if (ret < 0)
 			return ret;
 
-		if (!IS_V6(core)) {
-			ret = vcodec_control_v4(core, VIDC_CORE_ID_1, true);
-			if (ret)
-				return ret;
-		}
+		ret = vcodec_control_v4(core, VIDC_CORE_ID_1, true);
+		if (ret)
+			return ret;
 
 		ret = vcodec_clks_enable(core, core->vcodec0_clks);
 		if (ret)
@@ -514,11 +520,9 @@ static int poweron_coreid(struct venus_core *core, unsigned int coreid_mask)
 		if (ret < 0)
 			return ret;
 
-		if (!IS_V6(core)) {
-			ret = vcodec_control_v4(core, VIDC_CORE_ID_2, true);
-			if (ret)
-				return ret;
-		}
+		ret = vcodec_control_v4(core, VIDC_CORE_ID_2, true);
+		if (ret)
+			return ret;
 
 		ret = vcodec_clks_enable(core, core->vcodec1_clks);
 		if (ret)
@@ -814,7 +818,7 @@ static int vdec_power_v4(struct device *dev, int on)
 	else
 		vcodec_clks_disable(core, core->vcodec0_clks);
 
-	vcodec_control_v4(core, VIDC_CORE_ID_1, false);
+	ret = vcodec_control_v4(core, VIDC_CORE_ID_1, false);
 
 	return ret;
 }
@@ -859,7 +863,7 @@ static int venc_power_v4(struct device *dev, int on)
 	else
 		vcodec_clks_disable(core, core->vcodec1_clks);
 
-	vcodec_control_v4(core, VIDC_CORE_ID_2, false);
+	ret = vcodec_control_v4(core, VIDC_CORE_ID_2, false);
 
 	return ret;
 }
