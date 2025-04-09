@@ -1074,6 +1074,10 @@
 	status = "okay";
 };
 
+&iris {
+	firmware-name = "qcom/x1e80100/Dell/inspiron-14-plus-7441/qcvss8380.mbn";
+};
+
 &lpass_tlmm {
 	spkr_01_sd_n_active: spkr-01-sd-n-active-state {
 		pins = "gpio12";
