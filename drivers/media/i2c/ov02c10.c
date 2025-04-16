@@ -579,6 +579,10 @@ static int ov02c10_enable_streams(struct v4l2_subdev *sd,
 	if (ret)
 		return ret;
 
+dev_info(&client->dev, "%s %d ok\n", __func__, __LINE__);
+
+	ret = ov02c10_identify_module(ov02c10);
+
 	reg_sequence = mode->reg_sequence;
 	sequence_length = mode->sequence_length;
 	ret = regmap_multi_reg_write(ov02c10->regmap,
@@ -588,6 +592,7 @@ static int ov02c10_enable_streams(struct v4l2_subdev *sd,
 		goto out;
 	}
 
+dev_info(&client->dev, "%s %d ok\n", __func__, __LINE__);
 	reg_sequence = mode->lane_settings[ov02c10->mipi_lanes - 1];
 	sequence_length = mode->lane_settings_length[ov02c10->mipi_lanes - 1];
 	ret = regmap_multi_reg_write(ov02c10->regmap,
@@ -597,14 +602,19 @@ static int ov02c10_enable_streams(struct v4l2_subdev *sd,
 		goto out;
 	}
 
+dev_info(&client->dev, "%s %d ok\n", __func__, __LINE__);
 	ret = __v4l2_ctrl_handler_setup(ov02c10->sd.ctrl_handler);
 	if (ret)
 		goto out;
 
+dev_info(&client->dev, "%s %d ok\n", __func__, __LINE__);
 	ret = cci_write(ov02c10->regmap, OV02C10_REG_STREAM_CONTROL, 1, NULL);
 out:
 	if (ret)
 		pm_runtime_put(&client->dev);
+
+	(void) ov02c10_identify_module(ov02c10);
+dev_info(&client->dev, "%s %d result %d\n", __func__, __LINE__, ret);
 
 	return ret;
 }
@@ -785,6 +795,8 @@ static int ov02c10_identify_module(struct ov02c10 *ov02c10)
 	ret = cci_read(ov02c10->regmap, OV02C10_REG_CHIP_ID, &chip_id, NULL);
 	if (ret)
 		return ret;
+
+dev_info(&client->dev, "%s read chip id 0x%08lx want 0x%08lx\n", __func__, chip_id, OV02C10_CHIP_ID);
 
 	if (chip_id != OV02C10_CHIP_ID) {
 		dev_err(&client->dev, "chip id mismatch: %x!=%llx",
