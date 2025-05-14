@@ -937,7 +937,7 @@
 
 		port {
 			ov02c10_ep: endpoint {
-				data-lanes = <2>;
+				data-lanes = <1 2>;
 				link-frequencies = /bits/ 64 <400000000>;
 				remote-endpoint = <&csiphy4_ep>;
 			};
